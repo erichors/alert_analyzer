@@ -1,0 +1,28 @@
+{
+  "$schema": "./.dt-app/app.config.schema.json",
+  "environmentUrl": "https://tjl16204.apps.dynatrace.com/",
+  "app": {
+    "name": "Alert Advisor",
+    "version": "0.1.18",
+    "description": "AI assisted alert tuning, suppression simulation, and validation",
+    "id": "my.ahead.alert.advisor",
+    "scopes": [
+      {
+        "name": "storage:events:read",
+        "comment": "Read events for alert fatigue analysis"
+      },
+      {
+        "name": "storage:entities:read",
+        "comment": "Read application, service, host, and host group context"
+      },
+      {
+        "name": "storage:buckets:read",
+        "comment": "Read bucket metadata for future Grail queries"
+      },
+      {
+        "name": "settings:objects:read",
+        "comment": "Read settings metadata for future recommendation validation"
+      }
+    ]
+  }
+}

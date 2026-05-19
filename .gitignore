@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.dt-app/.tokens.json
+.dt-app/build/
+.dt-app/logs/
+.dt-app/type-checker/
+.DS_Store
+.env
+.env.*
+*.log
+coverage/
