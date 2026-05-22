@@ -4,8 +4,8 @@ import { sendIntent } from "@dynatrace-sdk/navigation";
 import { AppShell } from "./src/components/AppShell";
 import { RiskBadge } from "./src/components/RiskBadge";
 import type { AdvisorTab } from "./src/components/TabNav";
-import { defaultAiProviderSettings, defaultQuerySchedules } from "./src/config/advisorConfig";
-import type { AdvisorFilters, AdvisorQuerySchedule, ApprovalItem, DavisEvent, NoiseScore, Recommendation, ValidationMetric, WhatIfScenario } from "./src/types/alertAdvisor";
+import { defaultAiProviderSettings, defaultNoiseTuningSettings, defaultQuerySchedules } from "./src/config/advisorConfig";
+import type { AdvisorFilters, AdvisorQuerySchedule, ApprovalItem, DavisEvent, NoiseScore, NoiseTuningSettings, Recommendation, ValidationMetric, WhatIfScenario } from "./src/types/alertAdvisor";
 import { ApprovalQueuePage } from "./src/pages/ApprovalQueuePage";
 import { NoiseExplorerPage } from "./src/pages/NoiseExplorerPage";
 import { OverviewPage } from "./src/pages/OverviewPage";
@@ -88,16 +88,16 @@ function getField(record: Record<string, unknown>, ...names: string[]): unknown 
   return undefined;
 }
 
-function riskFromFireCount(fireCount: number) {
-  if (fireCount >= 1000) {
+function riskFromFireCount(fireCount: number, thresholds: NoiseTuningSettings["thresholds"]) {
+  if (fireCount >= thresholds.criticalFirings) {
     return "critical" as const;
   }
 
-  if (fireCount >= 100) {
+  if (fireCount >= thresholds.highFirings) {
     return "high" as const;
   }
 
-  if (fireCount >= 10) {
+  if (fireCount >= thresholds.mediumFirings) {
     return "medium" as const;
   }
 
@@ -117,7 +117,7 @@ function tierFromEntityType(entityType: string): DavisEvent["tier"] {
   return "Virtualization";
 }
 
-function buildNoisyEvents(records: Record<string, unknown>[]): DavisEvent[] {
+function buildNoisyEvents(records: Record<string, unknown>[], noiseTuning: NoiseTuningSettings): DavisEvent[] {
   return records.map((record, index) => {
     const fireCount = Number(getField(record, "fire_count") ?? 0);
     const entityType = String(getField(record, "dt.source_entity.type") ?? "UNKNOWN");
@@ -127,7 +127,7 @@ function buildNoisyEvents(records: Record<string, unknown>[]): DavisEvent[] {
     const provider = String(getField(record, "event.provider") ?? "Unmapped app");
     const settingsObjectId = String(getField(record, "dt.settings.object_id") ?? "");
     const lastFired = String(getField(record, "last_fired") ?? "");
-    const risk = riskFromFireCount(fireCount);
+    const risk = riskFromFireCount(fireCount, noiseTuning.thresholds);
     const isServiceEntity = entityType.toUpperCase().includes("SERVICE");
 
     return {
@@ -171,8 +171,8 @@ function buildNoiseScores(events: DavisEvent[]): NoiseScore[] {
     .slice(0, 5);
 }
 
-function createRecommendation(event: DavisEvent): EventRecommendation {
-  const isVeryNoisy = event.frequency >= 1000;
+function createRecommendation(event: DavisEvent, noiseTuning: NoiseTuningSettings): EventRecommendation {
+  const isVeryNoisy = event.frequency >= noiseTuning.thresholds.criticalFirings;
   const isService = event.hostGroup.toUpperCase().includes("SERVICE") || event.eventType.startsWith("Service");
 
   const servicePhrase = event.serviceName ? `service ${event.serviceName}` : `entity ${event.entity}`;
@@ -228,6 +228,7 @@ export const App = () => {
   const [filters, setFilters] = useState<AdvisorFilters>({ domain: "all", risk: "all", timeRange: "24h" });
   const [data, setData] = useState<AdvisorData>(emptyAdvisorData);
   const [querySchedules, setQuerySchedules] = useState<AdvisorQuerySchedule[]>(defaultQuerySchedules);
+  const [noiseTuning, setNoiseTuning] = useState<NoiseTuningSettings>(defaultNoiseTuningSettings);
   const [scheduleRuns, setScheduleRuns] = useState<Record<string, ScheduleRunState>>({});
   const [queryRate, setQueryRate] = useState(STANDARD_QUERY_RATE);
   const enabledSchedules = querySchedules.filter((schedule) => schedule.enabled);
@@ -272,7 +273,7 @@ export const App = () => {
 
     async function getServerRecommendation(event: DavisEvent) {
       setRecommendationRun({ loading: true });
-      const fallback = createRecommendation(event);
+      const fallback = createRecommendation(event, noiseTuning);
 
       try {
         const response = await fetch("/api/recommend-alert", {
@@ -309,7 +310,7 @@ export const App = () => {
     return () => {
       cancelled = true;
     };
-  }, [selectedRecommendationEvent]);
+  }, [noiseTuning, selectedRecommendationEvent]);
 
   function renderPage() {
     switch (activeTab) {
@@ -386,7 +387,7 @@ export const App = () => {
         }
 
         if (schedule.id === "noisy-events") {
-          const noisyEvents = buildNoisyEvents(records);
+          const noisyEvents = buildNoisyEvents(records, noiseTuning);
           setData((current) => ({
             ...current,
             davisEvents: noisyEvents,
@@ -425,10 +426,40 @@ export const App = () => {
       cancelled = true;
       intervalIds.forEach((intervalId) => window.clearInterval(intervalId));
     };
-  }, [demoDataEnabled, filters.timeRange, querySchedules]);
+  }, [demoDataEnabled, filters.timeRange, noiseTuning, querySchedules]);
 
   function updateSchedule(id: string, patch: Partial<AdvisorQuerySchedule>) {
     setQuerySchedules((current) => current.map((schedule) => (schedule.id === id ? { ...schedule, ...patch } : schedule)));
+  }
+
+  function updateNoiseThreshold(key: keyof NoiseTuningSettings["thresholds"], value: number) {
+    setNoiseTuning((current) => ({
+      ...current,
+      thresholds: {
+        ...current.thresholds,
+        [key]: Math.max(1, value || 1),
+      },
+    }));
+  }
+
+  function updateNoiseGrouping(key: keyof NoiseTuningSettings["grouping"], value: boolean) {
+    setNoiseTuning((current) => ({
+      ...current,
+      grouping: {
+        ...current.grouping,
+        [key]: value,
+      },
+    }));
+  }
+
+  function updateFlapping(key: keyof NoiseTuningSettings["flapping"], value: number | boolean) {
+    setNoiseTuning((current) => ({
+      ...current,
+      flapping: {
+        ...current.flapping,
+        [key]: typeof value === "number" ? Math.max(1, value || 1) : value,
+      },
+    }));
   }
 
   async function runScheduleDql(schedule: AdvisorQuerySchedule) {
@@ -560,6 +591,59 @@ export const App = () => {
                 <label className="settings-checkbox"><input type="checkbox" defaultChecked={defaultAiProviderSettings.redaction.sqlText} disabled /> SQL text</label>
               </article>
             </section>
+            <div className="settings-section-header">
+              <div>
+                <h3>Noise & Flapping</h3>
+                <p>Control recurring alert thresholds, grouping, and recovery-loop detection.</p>
+              </div>
+            </div>
+            <section className="noise-settings-grid" aria-label="Noise and flapping settings">
+              <article className="settings-option-card">
+                <h3>Noise thresholds</h3>
+                <label>Medium firings
+                  <input type="number" min="1" step="1" value={noiseTuning.thresholds.mediumFirings} onChange={(event) => updateNoiseThreshold("mediumFirings", Number(event.target.value))} />
+                </label>
+                <label>High firings
+                  <input type="number" min="1" step="1" value={noiseTuning.thresholds.highFirings} onChange={(event) => updateNoiseThreshold("highFirings", Number(event.target.value))} />
+                </label>
+                <label>Critical firings
+                  <input type="number" min="1" step="1" value={noiseTuning.thresholds.criticalFirings} onChange={(event) => updateNoiseThreshold("criticalFirings", Number(event.target.value))} />
+                </label>
+              </article>
+              <article className="settings-option-card">
+                <h3>Grouping rules</h3>
+                <label className="settings-checkbox"><input type="checkbox" checked={noiseTuning.grouping.sourceEntity} onChange={(event) => updateNoiseGrouping("sourceEntity", event.target.checked)} /> Source entity</label>
+                <label className="settings-checkbox"><input type="checkbox" checked={noiseTuning.grouping.eventName} onChange={(event) => updateNoiseGrouping("eventName", event.target.checked)} /> Event name</label>
+                <label className="settings-checkbox"><input type="checkbox" checked={noiseTuning.grouping.eventCategory} onChange={(event) => updateNoiseGrouping("eventCategory", event.target.checked)} /> Event category</label>
+                <label className="settings-checkbox"><input type="checkbox" checked={noiseTuning.grouping.settingsObject} onChange={(event) => updateNoiseGrouping("settingsObject", event.target.checked)} /> Settings object</label>
+                <label className="settings-checkbox"><input type="checkbox" checked={noiseTuning.grouping.provider} onChange={(event) => updateNoiseGrouping("provider", event.target.checked)} /> Provider</label>
+              </article>
+              <article className="settings-option-card">
+                <h3>Flapping detection</h3>
+                <label className="settings-checkbox"><input type="checkbox" checked={noiseTuning.flapping.enabled} onChange={(event) => updateFlapping("enabled", event.target.checked)} /> Enabled</label>
+                <label>State changes
+                  <input type="number" min="1" step="1" value={noiseTuning.flapping.minimumStateChanges} onChange={(event) => updateFlapping("minimumStateChanges", Number(event.target.value))} />
+                </label>
+                <label>Window minutes
+                  <input type="number" min="1" step="1" value={noiseTuning.flapping.windowMinutes} onChange={(event) => updateFlapping("windowMinutes", Number(event.target.value))} />
+                </label>
+                <label>Cooldown minutes
+                  <input type="number" min="1" step="1" value={noiseTuning.flapping.cooldownMinutes} onChange={(event) => updateFlapping("cooldownMinutes", Number(event.target.value))} />
+                </label>
+                <label>Auto-recovered %
+                  <input type="number" min="1" max="100" step="1" value={noiseTuning.flapping.autoRecoveredRatePercent} onChange={(event) => updateFlapping("autoRecoveredRatePercent", Number(event.target.value))} />
+                </label>
+              </article>
+              <article className="settings-option-card noise-preview-card">
+                <h3>Preview</h3>
+                <div className="noise-preview-metrics">
+                  <span><strong>{data.davisEvents.length.toLocaleString()}</strong> patterns</span>
+                  <span><strong>{data.davisEvents.reduce((sum, event) => sum + event.frequency, 0).toLocaleString()}</strong> firings</span>
+                  <span><strong>{data.davisEvents.filter((event) => event.frequency >= noiseTuning.thresholds.highFirings).length.toLocaleString()}</strong> high noise</span>
+                </div>
+                <small>Preview reflects loaded live or demo events and the current threshold settings.</small>
+              </article>
+            </section>
             <section className="settings-summary-grid" aria-label="Query cost summary">
               <article className="settings-metric">
                 <span>Monthly query cost</span>
@@ -678,7 +762,7 @@ export const App = () => {
         </div>
       )}
       {selectedRecommendationEvent && (() => {
-        const recommendation = recommendationRun.recommendation ?? createRecommendation(selectedRecommendationEvent);
+        const recommendation = recommendationRun.recommendation ?? createRecommendation(selectedRecommendationEvent, noiseTuning);
         return (
           <div className="modal-backdrop" role="presentation">
             <section className="recommendation-dialog" role="dialog" aria-modal="true" aria-labelledby="event-recommendation-title">

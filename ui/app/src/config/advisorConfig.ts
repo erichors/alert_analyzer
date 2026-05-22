@@ -1,4 +1,4 @@
-import type { AdvisorQuerySchedule, AiProviderSettings } from "../types/alertAdvisor";
+import type { AdvisorQuerySchedule, AiProviderSettings, NoiseTuningSettings } from "../types/alertAdvisor";
 
 export const defaultAiProviderSettings: AiProviderSettings = {
   provider: "Dynatrace Intelligence",
@@ -22,6 +22,28 @@ export const defaultAiProviderSettings: AiProviderSettings = {
     jira: false,
     teams: true,
     slack: false,
+  },
+};
+
+export const defaultNoiseTuningSettings: NoiseTuningSettings = {
+  thresholds: {
+    mediumFirings: 10,
+    highFirings: 100,
+    criticalFirings: 1000,
+  },
+  grouping: {
+    sourceEntity: true,
+    eventName: true,
+    eventCategory: true,
+    settingsObject: true,
+    provider: true,
+  },
+  flapping: {
+    enabled: true,
+    minimumStateChanges: 4,
+    windowMinutes: 30,
+    cooldownMinutes: 15,
+    autoRecoveredRatePercent: 80,
   },
 };
 

@@ -102,6 +102,28 @@ export interface AiProviderSettings {
   };
 }
 
+export interface NoiseTuningSettings {
+  thresholds: {
+    mediumFirings: number;
+    highFirings: number;
+    criticalFirings: number;
+  };
+  grouping: {
+    sourceEntity: boolean;
+    eventName: boolean;
+    eventCategory: boolean;
+    settingsObject: boolean;
+    provider: boolean;
+  };
+  flapping: {
+    enabled: boolean;
+    minimumStateChanges: number;
+    windowMinutes: number;
+    cooldownMinutes: number;
+    autoRecoveredRatePercent: number;
+  };
+}
+
 export interface AdvisorQuerySchedule {
   id: string;
   name: string;

@@ -758,6 +758,13 @@ select:disabled {
   padding: 0 18px 18px;
 }
 
+.noise-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0 18px 18px;
+}
+
 .settings-option-card {
   display: grid;
   gap: 10px;
@@ -786,6 +793,32 @@ select:disabled {
 .settings-checkbox input {
   width: 18px;
   height: 18px;
+}
+
+.noise-preview-card {
+  align-content: start;
+}
+
+.noise-preview-metrics {
+  display: grid;
+  gap: 8px;
+}
+
+.noise-preview-metrics span {
+  display: block;
+  padding: 10px;
+  border: 1px solid var(--soft-line);
+  border-radius: var(--radius);
+  color: var(--muted);
+  background: var(--field);
+  font-size: .82rem;
+}
+
+.noise-preview-metrics strong {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--ink);
+  font-size: 1.08rem;
 }
 
 .query-block {
@@ -927,7 +960,7 @@ select:disabled {
 }
 
 @media (max-width: 1180px) {
-  .metric-grid, .card-grid, .validation-grid, .settings-layout, .event-type-grid, .settings-summary-grid, .settings-options-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .metric-grid, .card-grid, .validation-grid, .settings-layout, .event-type-grid, .settings-summary-grid, .settings-options-grid, .noise-settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .recommendation-dialog-grid { grid-template-columns: 1fr; }
   .schedule-row { grid-template-columns: 1fr 1fr; }
 }
@@ -935,7 +968,7 @@ select:disabled {
 @media (max-width: 760px) {
   .shell { width: min(100% - 20px, 1560px); }
   .topbar { align-items: flex-start; flex-direction: column; }
-  .filter-strip, .metric-grid, .card-grid, .validation-grid, .settings-layout, .event-type-grid, .rank-row, .approval-row, .settings-summary-grid, .schedule-row, .rate-field, .settings-options-grid { grid-template-columns: 1fr; }
+  .filter-strip, .metric-grid, .card-grid, .validation-grid, .settings-layout, .event-type-grid, .rank-row, .approval-row, .settings-summary-grid, .schedule-row, .rate-field, .settings-options-grid, .noise-settings-grid { grid-template-columns: 1fr; }
   .context-list div { grid-template-columns: 1fr; }
   .query-actions { align-items: stretch; flex-direction: column; }
 }
