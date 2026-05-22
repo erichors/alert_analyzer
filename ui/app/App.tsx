@@ -17,6 +17,7 @@ import "./App.css";
 const MINUTES_PER_MONTH = 30 * 24 * 60;
 const STANDARD_QUERY_RATE = 0.0035;
 const RESULT_LIMIT = 25;
+const THEME_STORAGE_KEY = "alert-advisor-theme";
 const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 
 type QueryRunState = {
@@ -65,6 +66,8 @@ type AdvisorData = {
   whatIfScenarios: WhatIfScenario[];
 };
 
+type ThemeMode = "dark" | "light";
+
 const emptyAdvisorData: AdvisorData = {
   approvalItems: [],
   davisEvents: [],
@@ -73,6 +76,15 @@ const emptyAdvisorData: AdvisorData = {
   validationMetrics: [],
   whatIfScenarios: [],
 };
+
+function getInitialTheme(): ThemeMode {
+  try {
+    const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+    return storedTheme === "dark" || storedTheme === "light" ? storedTheme : "light";
+  } catch {
+    return "light";
+  }
+}
 
 function applyTimeRangeToDql(dql: string, timeRange: string): string {
   return dql.replace(/from:now\(\)-[0-9]+[mhd]/g, `from:now()-${timeRange}`);
@@ -217,7 +229,7 @@ function formatValue(value: unknown): string {
 
 export const App = () => {
   const [activeTab, setActiveTab] = useState<AdvisorTab>("overview");
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [theme, setTheme] = useState<ThemeMode>(getInitialTheme);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [demoDataEnabled, setDemoDataEnabled] = useState(false);
   const [selectedDqlSchedule, setSelectedDqlSchedule] = useState<AdvisorQuerySchedule | null>(null);
@@ -246,6 +258,14 @@ export const App = () => {
       (filters.domain === "database" && event.tier === "DB tier");
     return riskMatch && domainMatch;
   });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch {
+      // Ignore storage failures; the in-session theme still works.
+    }
+  }, [theme]);
 
   useEffect(() => {
     let cancelled = false;
