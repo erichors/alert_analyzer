@@ -11,14 +11,25 @@ const tabs: Array<{ id: AdvisorTab; label: string }> = [
   { id: "validation", label: "Validation" },
 ];
 
-export function TabNav({ activeTab, onChange }: { activeTab: AdvisorTab; onChange: (tab: AdvisorTab) => void }) {
+export function TabNav({ activeTab, disabledTabs = [], onChange }: { activeTab: AdvisorTab; disabledTabs?: AdvisorTab[]; onChange: (tab: AdvisorTab) => void }) {
   return (
     <nav className="tab-nav" aria-label="Alert Advisor sections">
-      {tabs.map((tab) => (
-        <button key={tab.id} className={activeTab === tab.id ? "active" : ""} type="button" onClick={() => onChange(tab.id)}>
-          {tab.label}
-        </button>
-      ))}
+      {tabs.map((tab) => {
+        const disabled = disabledTabs.includes(tab.id);
+        return (
+          <button
+            key={tab.id}
+            aria-disabled={disabled}
+            className={activeTab === tab.id ? "active" : ""}
+            disabled={disabled}
+            title={disabled ? "Requires demo data or a live workflow integration" : undefined}
+            type="button"
+            onClick={() => onChange(tab.id)}
+          >
+            {tab.label}{disabled ? " (demo)" : ""}
+          </button>
+        );
+      })}
     </nav>
   );
 }

@@ -228,6 +228,12 @@ input, select {
   background: var(--high);
 }
 
+.tab-nav button:disabled {
+  border-style: dashed;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--field) 65%, transparent);
+}
+
 .page-surface { min-height: 620px; }
 
 .metric-grid, .card-grid, .validation-grid, .settings-layout {

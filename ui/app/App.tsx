@@ -77,6 +77,8 @@ const emptyAdvisorData: AdvisorData = {
   whatIfScenarios: [],
 };
 
+const demoOnlyTabs: AdvisorTab[] = ["recommendations", "what-if", "approval", "validation"];
+
 function getInitialTheme(): ThemeMode {
   try {
     const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
@@ -266,6 +268,12 @@ export const App = () => {
       // Ignore storage failures; the in-session theme still works.
     }
   }, [theme]);
+
+  useEffect(() => {
+    if (!demoDataEnabled && demoOnlyTabs.includes(activeTab)) {
+      setActiveTab("overview");
+    }
+  }, [activeTab, demoDataEnabled]);
 
   useEffect(() => {
     let cancelled = false;
@@ -539,6 +547,7 @@ export const App = () => {
     <div className="app" data-theme={theme}>
       <AppShell
         activeTab={activeTab}
+        disabledTabs={demoDataEnabled ? [] : demoOnlyTabs}
         filters={filters}
         onFilterChange={setFilters}
         onOpenSettings={() => setSettingsOpen(true)}
@@ -569,48 +578,6 @@ export const App = () => {
                 </button>
               </div>
             </div>
-            <section className="settings-options-grid" aria-label="Recommendation settings">
-              <article className="settings-option-card">
-                <h3>Recommendations</h3>
-                <label>Mode
-                  <select defaultValue={defaultAiProviderSettings.operatingMode} disabled>
-                    <option>Recommend only</option>
-                    <option>Draft change</option>
-                    <option>Apply after approval</option>
-                  </select>
-                </label>
-                <label>Minimum confidence
-                  <input type="number" min="0" max="100" step="5" defaultValue={80} disabled />
-                </label>
-              </article>
-              <article className="settings-option-card">
-                <h3>AI provider</h3>
-                <label>Provider
-                  <select defaultValue={defaultAiProviderSettings.provider} disabled>
-                    <option>Dynatrace Intelligence</option>
-                    <option>Azure OpenAI</option>
-                    <option>OpenAI</option>
-                    <option>Bedrock</option>
-                    <option>MCP</option>
-                  </select>
-                </label>
-                <label>Model
-                  <input defaultValue={defaultAiProviderSettings.modelName} disabled />
-                </label>
-              </article>
-              <article className="settings-option-card">
-                <h3>Guardrails</h3>
-                <label className="settings-checkbox"><input type="checkbox" defaultChecked={defaultAiProviderSettings.guardrails.requireApproval} disabled /> Require approval</label>
-                <label className="settings-checkbox"><input type="checkbox" defaultChecked={defaultAiProviderSettings.guardrails.neverAutoMuteCriticalApps} disabled /> Never auto mute critical apps</label>
-                <label className="settings-checkbox"><input type="checkbox" defaultChecked={defaultAiProviderSettings.guardrails.rollbackRequired} disabled /> Rollback required</label>
-              </article>
-              <article className="settings-option-card">
-                <h3>Redaction</h3>
-                <label className="settings-checkbox"><input type="checkbox" defaultChecked={defaultAiProviderSettings.redaction.hostname} disabled /> Hostname</label>
-                <label className="settings-checkbox"><input type="checkbox" defaultChecked={defaultAiProviderSettings.redaction.endpointName} disabled /> Endpoint name</label>
-                <label className="settings-checkbox"><input type="checkbox" defaultChecked={defaultAiProviderSettings.redaction.sqlText} disabled /> SQL text</label>
-              </article>
-            </section>
             <div className="settings-section-header">
               <div>
                 <h3>Noise & Flapping</h3>
@@ -728,6 +695,54 @@ export const App = () => {
                 </article>
               ))}
             </div>
+            <div className="settings-section-header future-settings-header">
+              <div>
+                <h3>Future settings</h3>
+                <p>These controls are visible for roadmap context, but they are disabled until live recommendation, AI provider, and workflow integrations are implemented.</p>
+              </div>
+            </div>
+            <section className="settings-options-grid future-settings-grid" aria-label="Future settings">
+              <article className="settings-option-card">
+                <h3>Recommendations</h3>
+                <label>Mode
+                  <select defaultValue={defaultAiProviderSettings.operatingMode} disabled>
+                    <option>Recommend only</option>
+                    <option>Draft change</option>
+                    <option>Apply after approval</option>
+                  </select>
+                </label>
+                <label>Minimum confidence
+                  <input type="number" min="0" max="100" step="5" defaultValue={80} disabled />
+                </label>
+              </article>
+              <article className="settings-option-card">
+                <h3>AI provider</h3>
+                <label>Provider
+                  <select defaultValue={defaultAiProviderSettings.provider} disabled>
+                    <option>Dynatrace Intelligence</option>
+                    <option>Azure OpenAI</option>
+                    <option>OpenAI</option>
+                    <option>Bedrock</option>
+                    <option>MCP</option>
+                  </select>
+                </label>
+                <label>Model
+                  <input defaultValue={defaultAiProviderSettings.modelName} disabled />
+                </label>
+              </article>
+              <article className="settings-option-card">
+                <h3>Guardrails</h3>
+                <label className="settings-checkbox"><input type="checkbox" defaultChecked={defaultAiProviderSettings.guardrails.requireApproval} disabled /> Require approval</label>
+                <label className="settings-checkbox"><input type="checkbox" defaultChecked={defaultAiProviderSettings.guardrails.neverAutoMuteCriticalApps} disabled /> Never auto mute critical apps</label>
+                <label className="settings-checkbox"><input type="checkbox" defaultChecked={defaultAiProviderSettings.guardrails.rollbackRequired} disabled /> Rollback required</label>
+              </article>
+              <article className="settings-option-card">
+                <h3>Redaction</h3>
+                <label className="settings-checkbox"><input type="checkbox" defaultChecked={defaultAiProviderSettings.redaction.hostname} disabled /> Hostname</label>
+                <label className="settings-checkbox"><input type="checkbox" defaultChecked={defaultAiProviderSettings.redaction.endpointName} disabled /> Endpoint name</label>
+                <label className="settings-checkbox"><input type="checkbox" defaultChecked={defaultAiProviderSettings.redaction.sqlText} disabled /> SQL text</label>
+              </article>
+            </section>
           </section>
         </div>
       )}

@@ -6,6 +6,7 @@ import type { AdvisorFilters } from "../types/alertAdvisor";
 interface AppShellProps {
   activeTab: AdvisorTab;
   children: React.ReactNode;
+  disabledTabs?: AdvisorTab[];
   filters: AdvisorFilters;
   onFilterChange: (filters: AdvisorFilters) => void;
   onOpenSettings: () => void;
@@ -14,7 +15,7 @@ interface AppShellProps {
   theme: "dark" | "light";
 }
 
-export function AppShell({ activeTab, children, filters, onFilterChange, onOpenSettings, onTabChange, onToggleTheme, theme }: AppShellProps) {
+export function AppShell({ activeTab, children, disabledTabs, filters, onFilterChange, onOpenSettings, onTabChange, onToggleTheme, theme }: AppShellProps) {
   return (
     <main className="shell">
       <header className="topbar">
@@ -35,7 +36,7 @@ export function AppShell({ activeTab, children, filters, onFilterChange, onOpenS
         </div>
       </header>
       <FilterBar filters={filters} onChange={onFilterChange} />
-      <TabNav activeTab={activeTab} onChange={onTabChange} />
+      <TabNav activeTab={activeTab} disabledTabs={disabledTabs} onChange={onTabChange} />
       <section className="page-surface">{children}</section>
     </main>
   );
